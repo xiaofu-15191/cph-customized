@@ -1,11 +1,11 @@
 {
     "name": "competitive-programming-helper",
-    "displayName": "Competitive Programming Helper (cph)",
+    "displayName": "Competitive Programming Helper (Customized By lnw143)",
     "description": "Makes judging, compiling, and downloading problems for competitve programming easy. Also supports auto-submit for a few sites.",
     "license": "GPL-3.0-or-later",
     "icon": "icon.png",
-    "publisher": "DivyanshuAgrawal",
-    "version": "2024.6.1717519178",
+    "publisher": "Liam White",
+    "version": "1.0.0",
     "engines": {
         "vscode": "^1.52.0"
     },
@@ -354,14 +354,14 @@
         "webpack-cli": "^5.1.4"
     },
     "dependencies": {
+        "@vscode/extension-telemetry": "^0.9.0",
         "python-shell": "^5.0.0",
         "react": "^18.2.0",
         "react-dom": "^18.2.0",
-        "react-textarea-autosize": "^8.5.3",
-        "@vscode/extension-telemetry": "^0.9.0"
+        "react-textarea-autosize": "^8.5.3"
     },
     "repository": {
         "type": "git",
-        "url": "https://github.com/agrawal-d/competitive-programming-helper/"
+        "url": "https://github.com/lnw143/cph-customized/"
     }
 }

@@ -8,6 +8,8 @@ import {
 } from './preferences';
 import * as vscode from 'vscode';
 import { getJudgeViewProvider } from './extension';
+import fs from 'fs';
+import crypto from 'crypto';
 export let onlineJudgeEnv = false;
 
 export const setOnlineJudgeEnv = (value: boolean) => {
@@ -128,12 +130,62 @@ const getFlags = (language: Language, srcPath: string): string[] => {
  *
  * @param srcPath location of the source code
  */
+
+export const getHashSaveLocation = (srcPath: string): string => {
+    const savePreference = getSaveLocationPref();
+    const srcFileName = path.basename(srcPath);
+    const srcFolder = path.dirname(srcPath);
+    const hash = crypto.createHash('md5').update(srcPath).digest('hex');
+    const baseHashName = `.${srcFileName}_${hash}.hash`;
+    const cphFolder = path.join(srcFolder, '.cph');
+    if (savePreference && savePreference !== '') {
+        return path.join(savePreference, baseHashName);
+    }
+    return path.join(cphFolder, baseHashName);
+};
+
+export const getFileHashVal = (srcPath: string): string => {
+    const srcContent = fs.readFileSync(srcPath).toString();
+    return crypto.createHash('sha256').update(srcContent).digest('hex');
+};
+
+export const checkNotModified = (srcPath: string): boolean => {
+    console.log(
+        'Checking if <' + srcPath + "> isn't modified since last compile.",
+    );
+    const hashPath = getHashSaveLocation(srcPath);
+    try {
+        const past: string = fs.readFileSync(hashPath).toString();
+        const current: string = getFileHashVal(srcPath);
+        if (past != current) {
+            return false;
+        }
+        fs.accessSync(getBinSaveLocation(srcPath));
+        return true;
+    } catch (err) {
+        return false;
+    }
+};
+
+export const updateFileHash = (srcPath: string): boolean => {
+    console.log('Updating <' + srcPath + ">'s Hashval.");
+    try {
+        const hashPath = getHashSaveLocation(srcPath);
+        const currentHashval = getFileHashVal(srcPath);
+        fs.writeFileSync(hashPath, currentHashval);
+        return true;
+    } catch (err) {
+        console.error('Failed Updating <' + srcPath + ">'s Hashval.");
+        return false;
+    }
+};
+
 export const compileFile = async (srcPath: string): Promise<boolean> => {
     console.log('Compilation Started');
     await vscode.workspace.openTextDocument(srcPath).then((doc) => doc.save());
     ocHide();
     const language: Language = getLanguage(srcPath);
-    if (language.skipCompile) {
+    if (language.skipCompile || checkNotModified(srcPath)) {
         return Promise.resolve(true);
     }
     getJudgeViewProvider().extensionToJudgeViewMessage({
@@ -210,5 +262,6 @@ export const compileFile = async (srcPath: string): Promise<boolean> => {
             return;
         });
     });
+    updateFileHash(srcPath);
     return result;
 };

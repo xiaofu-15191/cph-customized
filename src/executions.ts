@@ -147,26 +147,6 @@ export const runTestCase = (
     return ret;
 };
 
-/** Remove the generated binary from the file system, if present */
-export const deleteBinary = (language: Language, binPath: string) => {
-    if (language.skipCompile) {
-        console.log(
-            "Skipping deletion of binary as it's not a compiled language.",
-        );
-        return;
-    }
-    console.log('Deleting binary', binPath);
-    try {
-        if (platform() == 'linux') {
-            spawn('rm', [binPath]);
-        } else {
-            spawn('del', [binPath], { shell: true });
-        }
-    } catch (err) {
-        console.error('Error while deleting binary', err);
-    }
-};
-
 /** Kill all running binaries. Usually, only one should be running at a time. */
 export const killRunning = () => {
     globalThis.reporter.sendTelemetryEvent(telmetry.KILL_RUNNING);

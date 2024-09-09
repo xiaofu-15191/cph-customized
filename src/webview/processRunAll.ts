@@ -1,8 +1,6 @@
 import { Problem } from '../types';
 import { runSingleAndSave } from './processRunSingle';
-import { compileFile, getBinSaveLocation } from '../compiler';
-import { deleteBinary } from '../executions';
-import { getLanguage } from '../utils';
+import { compileFile } from '../compiler';
 import { getJudgeViewProvider } from '../extension';
 
 /**
@@ -24,8 +22,4 @@ export default async (problem: Problem) => {
         await runSingleAndSave(problem, testCase.id, true, true);
     }
     console.log('Run all finished');
-    deleteBinary(
-        getLanguage(problem.srcPath),
-        getBinSaveLocation(problem.srcPath),
-    );
 };

@@ -2,7 +2,7 @@ import { Problem, RunResult } from '../types';
 import { getLanguage } from '../utils';
 import { getBinSaveLocation, compileFile } from '../compiler';
 import { saveProblem } from '../parser';
-import { runTestCase, deleteBinary } from '../executions';
+import { runTestCase } from '../executions';
 import { isResultCorrect } from '../judge';
 import * as vscode from 'vscode';
 import { getJudgeViewProvider } from '../extension';
@@ -44,10 +44,6 @@ export const runSingleAndSave = async (
     }
 
     const run = await runTestCase(language, binPath, testCase.input);
-
-    if (!skipCompile) {
-        deleteBinary(language, binPath);
-    }
 
     const stderrorFailure = getIgnoreSTDERRORPref() ? false : run.stderr !== '';
 

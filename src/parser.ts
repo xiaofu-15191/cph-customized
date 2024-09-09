@@ -15,11 +15,7 @@ export const getProbSaveLocation = (srcPath: string): string => {
     const savePreference = getSaveLocationPref();
     const srcFileName = path.basename(srcPath);
     const srcFolder = path.dirname(srcPath);
-    const hash = crypto
-        .createHash('md5')
-        .update(srcPath)
-        .digest('hex')
-        .substr(0);
+    const hash = crypto.createHash('md5').update(srcPath).digest('hex');
     const baseProbName = `.${srcFileName}_${hash}.prob`;
     const cphFolder = path.join(srcFolder, '.cph');
     if (savePreference && savePreference !== '') {
