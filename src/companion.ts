@@ -5,6 +5,7 @@ import { saveProblem } from './parser';
 import * as vscode from 'vscode';
 import path from 'path';
 import { writeFileSync, readFileSync, existsSync } from 'fs';
+import * as fs from 'fs';
 import { isCodeforcesUrl, randomId } from './utils';
 import {
     getDefaultLangPref,
@@ -108,6 +109,7 @@ export const setupCompanionServer = () => {
                         return;
                     }
                     const problem: Problem = JSON.parse(rawProblem);
+                    console.warn('!!!!' + problem.srcPath);
                     handleNewProblem(problem);
                     COMPANION_LOGGING &&
                         console.log('Companion server closed connection.');
@@ -165,6 +167,53 @@ export const getProblemFileName = (problem: Problem, ext: string) => {
     }
 };
 
+export const getWorkspaceSubFolders = async (
+    folder: string,
+): Promise<string[]> => {
+    const folders: string[] = [folder];
+
+    async function traverseFolder(folderPath: string) {
+        const items = await fs.promises.readdir(folderPath, {
+            withFileTypes: true,
+        });
+
+        for (const item of items) {
+            const itemPath = path.join(folderPath, item.name);
+
+            if (item.isDirectory()) {
+                folders.push(itemPath);
+                await traverseFolder(itemPath);
+            }
+        }
+    }
+
+    await traverseFolder(folder);
+    return folders;
+};
+
+export const askForFolderFromList = async (
+    folders: string[],
+): Promise<string | undefined> => {
+    const choices = [];
+
+    for (const folder of folders) {
+        choices.push({ label: folder, path: folder });
+    }
+
+    const selectedFolder = await vscode.window.showQuickPick(choices, {
+        placeHolder: 'Select a folder',
+    });
+
+    return selectedFolder?.path;
+};
+
+export const askForFolder = async (
+    folder: string,
+): Promise<string | undefined> => {
+    const folders = await getWorkspaceSubFolders(folder);
+    return await askForFolderFromList(folders);
+};
+
 /** Handle the `problem` sent by Competitive Companion, such as showing the webview, opening an editor, managing layout etc. */
 const handleNewProblem = async (problem: Problem) => {
     globalThis.reporter.sendTelemetryEvent(telmetry.GET_PROBLEM_FROM_COMPANION);
@@ -179,6 +228,13 @@ const handleNewProblem = async (problem: Problem) => {
     if (folder === undefined) {
         vscode.window.showInformationMessage('Please open a folder first.');
         return;
+    }
+    const folderPath = await askForFolder(folder);
+    if (folderPath == undefined) {
+        vscode.window.showInformationMessage('No folder selected.');
+        return;
+    } else {
+        vscode.window.showInformationMessage(`Selected folder: ${folderPath}`);
     }
     const defaultLanguage = getDefaultLangPref();
     let extn: string;
@@ -212,7 +268,7 @@ const handleNewProblem = async (problem: Problem) => {
         problem.name = splitUrl[splitUrl.length - 1];
     }
     const problemFileName = getProblemFileName(problem, extn);
-    const srcPath = path.join(folder, problemFileName);
+    const srcPath = path.join(folderPath, problemFileName);
 
     // Add fields absent in competitive companion.
     problem.srcPath = srcPath;
