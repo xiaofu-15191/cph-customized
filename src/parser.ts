@@ -2,7 +2,6 @@ import path from 'path';
 import fs from 'fs';
 import { Problem } from './types';
 import { getSaveLocationPref } from './preferences';
-import crypto from 'crypto';
 
 /**
  *  Get the location (file path) to save the generated problem file in. If save
@@ -15,8 +14,7 @@ export const getProbSaveLocation = (srcPath: string): string => {
     const savePreference = getSaveLocationPref();
     const srcFileName = path.basename(srcPath);
     const srcFolder = path.dirname(srcPath);
-    const hash = crypto.createHash('md5').update(srcPath).digest('hex');
-    const baseProbName = `.${srcFileName}_${hash}.prob`;
+    const baseProbName = `.${srcFileName}.prob`;
     const cphFolder = path.join(srcFolder, '.cph');
     if (savePreference && savePreference !== '') {
         return path.join(savePreference, baseProbName);

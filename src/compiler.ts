@@ -34,12 +34,13 @@ export const getBinSaveLocation = (srcPath: string): string => {
     const ext = language.name == 'java' ? '*.class' : '.bin';
     const savePreference = getSaveLocationPref();
     const srcFileName = path.parse(srcPath).name;
+    const srcFolder = path.dirname(srcPath);
     const binFileName = srcFileName + ext;
-    const binDir = path.dirname(srcPath);
+    const cphFolder = path.join(srcFolder, '.cph');
     if (savePreference && savePreference !== '') {
         return path.join(savePreference, binFileName);
     }
-    return path.join(binDir, binFileName);
+    return path.join(cphFolder, binFileName);
 };
 
 /**
@@ -135,8 +136,7 @@ export const getHashSaveLocation = (srcPath: string): string => {
     const savePreference = getSaveLocationPref();
     const srcFileName = path.basename(srcPath);
     const srcFolder = path.dirname(srcPath);
-    const hash = crypto.createHash('md5').update(srcPath).digest('hex');
-    const baseHashName = `.${srcFileName}_${hash}.hash`;
+    const baseHashName = `.${srcFileName}.hash`;
     const cphFolder = path.join(srcFolder, '.cph');
     if (savePreference && savePreference !== '') {
         return path.join(savePreference, baseHashName);
@@ -187,6 +187,11 @@ export const compileFile = async (srcPath: string): Promise<boolean> => {
     const language: Language = getLanguage(srcPath);
     if (language.skipCompile || checkNotModified(srcPath)) {
         return Promise.resolve(true);
+    }
+    try {
+        fs.unlinkSync(getBinSaveLocation(srcPath));
+    } catch (err) {
+        console.warn('Error when deleting the .bin file.');
     }
     getJudgeViewProvider().extensionToJudgeViewMessage({
         command: 'compiling-start',
