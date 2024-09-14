@@ -109,7 +109,6 @@ export const setupCompanionServer = () => {
                         return;
                     }
                     const problem: Problem = JSON.parse(rawProblem);
-                    console.warn('!!!!' + problem.srcPath);
                     handleNewProblem(problem);
                     COMPANION_LOGGING &&
                         console.log('Companion server closed connection.');
