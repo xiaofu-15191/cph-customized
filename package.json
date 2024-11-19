@@ -328,7 +328,7 @@
         "webpack-dev": "webpack --mode development --watch",
         "webpack-frontend-dev": "webpack --mode development --watch --config ./webpack.frontend.config.js",
         "test-compile": "tsc -p ./",
-        "lint": "eslint . --ext .ts,.tsx",
+        "lint": "eslint . --ext .ts,.tsx --fix",
         "pretest": "tsc -p ./",
         "test": "jest out/ --silent=false"
     },
