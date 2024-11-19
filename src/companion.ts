@@ -280,6 +280,7 @@ const handleNewProblem = async (problem: Problem) => {
     }
     saveProblem(srcPath, problem);
     const doc = await vscode.workspace.openTextDocument(srcPath);
+    await vscode.window.showTextDocument(doc, vscode.ViewColumn.One);
 
     if (defaultLanguage) {
         const templateLocation = getDefaultLanguageTemplateFileLocation();
@@ -292,12 +293,26 @@ const handleNewProblem = async (problem: Problem) => {
             } else {
                 const templateContents =
                     readFileSync(templateLocation).toString();
-                writeFileSync(srcPath, templateContents);
+                // writeFileSync(srcPath, templateContents);
+                const activeEditor = vscode.window.activeTextEditor;
+                if (activeEditor != null) {
+                    const snippet = new vscode.SnippetString(templateContents);
+                    await activeEditor.edit((editBuilder) => {
+                        editBuilder.delete(
+                            new vscode.Range(
+                                0,
+                                0,
+                                activeEditor.document.lineCount,
+                                activeEditor.document.getText().length,
+                            ),
+                        );
+                    });
+                    activeEditor.insertSnippet(snippet);
+                }
             }
         }
     }
 
-    await vscode.window.showTextDocument(doc, vscode.ViewColumn.One);
     getJudgeViewProvider().extensionToJudgeViewMessage({
         command: 'new-problem',
         problem,
