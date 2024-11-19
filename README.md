@@ -13,6 +13,8 @@ TopCoder etc. with the help of competitive companion browser extension
 
 ## Features
 
+### Original
+
 - Automatic compilation with display for compilation errors.
 - Intelligent judge with support for signals, timeouts and runtime errors.
 - Works with Competitive Companion.
@@ -21,6 +23,12 @@ TopCoder etc. with the help of competitive companion browser extension
 - [Kattis auto-submit](docs/user-guide.md) integration.
 - Works locally for your own problems.
 - Support for several languages.
+
+### Customized
+
+- You can choose the file save location in the active workspace.
+- You can use the code template as [VSCode Snippets](https://code.visualstudio.com/docs/editor/userdefinedsnippets).
+- The source file won't be compiled if it has not been changed since last compilation.
 
 ## Supported Languages
 
