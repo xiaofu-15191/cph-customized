@@ -1,5 +1,5 @@
 import { spawn } from 'child_process';
-import { existsSync, readFileSync } from 'fs';
+import { existsSync, readdirSync, readFileSync } from 'fs';
 import { platform } from 'os';
 import path from 'path';
 import * as vscode from 'vscode';
@@ -16,6 +16,7 @@ import {
     getJsArgsPref,
     getGoArgsPref,
     getHaskellArgsPref,
+    getCSharpArgsPref,
     getCCommand,
     getCppCommand,
     getPythonCommand,
@@ -25,6 +26,7 @@ import {
     getJsCommand,
     getGoCommand,
     getHaskellCommand,
+    getCSharpCommand,
 } from './preferences';
 import { Language, Problem } from './types';
 import telmetry from './telmetry';
@@ -48,7 +50,9 @@ export const getLanguage = (srcPath: string): Language => {
     }
 
     switch (langName) {
-        case 'cpp': {
+        case 'cpp':
+        case 'cc':
+        case 'cxx': {
             return {
                 name: langName,
                 args: [...getCppArgsPref()],
@@ -120,6 +124,14 @@ export const getLanguage = (srcPath: string): Language => {
                 skipCompile: false,
             };
         }
+        case 'csharp': {
+            return {
+                name: langName,
+                args: [...getCSharpArgsPref()],
+                compiler: getCSharpCommand(),
+                skipCompile: false,
+            };
+        }
     }
     throw new Error('Invalid State');
 };
@@ -132,6 +144,12 @@ export const isValidLanguage = (srcPath: string): boolean => {
 
 export const isCodeforcesUrl = (url: URL): boolean => {
     return url.hostname.includes('codeforces.com');
+};
+export const isLuoguUrl = (url: URL): boolean => {
+    return url.hostname.indexOf('luogu.com.cn') !== -1;
+};
+export const isAtCoderUrl = (url: URL): boolean => {
+    return url.hostname === 'atcoder.jp';
 };
 
 export const ocAppend = (string: string) => {
@@ -152,7 +170,13 @@ export const ocHide = () => {
     oc.hide();
 };
 
-export const randomId = () => Math.floor(Date.now() + Math.random() * 100);
+export const randomId = (index: number | null) => {
+    if (index !== null) {
+        return Math.floor(Date.now() + index);
+    } else {
+        return Math.floor(Date.now() + Math.random() * 100);
+    }
+};
 
 /**
  * Check if file is supported. If not, shows an error dialog. Returns true if
@@ -169,17 +193,45 @@ export const checkUnsupported = (srcPath: string): boolean => {
 };
 
 /** Deletes the .prob problem file for a given source code path. */
-export const deleteProblemFile = (srcPath: string) => {
+export const deleteProblemFile = async (srcPath: string) => {
     globalThis.reporter.sendTelemetryEvent(telmetry.DELETE_ALL_TESTCASES);
     const probPath = getProbSaveLocation(srcPath);
+
+    globalThis.logger.log('Deleting problem file', probPath);
     try {
         if (platform() === 'win32') {
-            spawn('del', [probPath]);
+            spawn('cmd.exe', ['/c', 'del', probPath]);
         } else {
             spawn('rm', [probPath]);
         }
     } catch (error) {
-        console.error('Error while deleting problem file ', error);
+        globalThis.logger.error('Error while deleting problem file ', error);
+    }
+
+    // Sleep for half second
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    // If the folder is now empty, remove the folder too
+    const probFolder = path.dirname(probPath);
+    const files = readdirSync(probFolder);
+    if (files.length === 0) {
+        globalThis.logger.log(
+            'Deleting problem folder',
+            probFolder,
+            'as it is empty',
+        );
+        try {
+            if (platform() === 'win32') {
+                spawn('cmd.exe', ['/c', 'rmdir', probFolder]);
+            } else {
+                spawn('rmdir', [probFolder]);
+            }
+        } catch (error) {
+            globalThis.logger.error(
+                'Error while deleting problem folder ',
+                error,
+            );
+        }
     }
 };
 

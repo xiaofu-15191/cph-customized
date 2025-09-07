@@ -8,7 +8,7 @@ import { getJudgeViewProvider } from '../extension';
  * before running next. `runSingleAndSave` takes care of saving.
  **/
 export default async (problem: Problem) => {
-    console.log('Run all started', problem);
+    globalThis.logger.log('Run all started', problem);
     const didCompile = await compileFile(problem.srcPath);
     if (!didCompile) {
         return;
@@ -21,5 +21,5 @@ export default async (problem: Problem) => {
         });
         await runSingleAndSave(problem, testCase.id, true, true);
     }
-    console.log('Run all finished');
+    globalThis.logger.log('Run all finished');
 };

@@ -11,13 +11,20 @@ export type prefSection =
     | 'general.ignoreSTDERROR'
     | 'general.firstTime'
     | 'general.useShortCodeForcesName'
+    | 'general.useShortLuoguName'
+    | 'general.useShortAtCoderName'
     | 'general.menuChoices'
     | 'language.c.Args'
     | 'language.c.SubmissionCompiler'
     | 'language.c.Command'
+    | 'language.c.OutputArg'
     | 'language.cpp.Args'
     | 'language.cpp.SubmissionCompiler'
     | 'language.cpp.Command'
+    | 'language.cpp.OutputArg'
+    | 'language.csharp.Args'
+    | 'language.csharp.SubmissionCompiler'
+    | 'language.csharp.Command'
     | 'language.go.Args'
     | 'language.go.SubmissionCompiler'
     | 'language.go.Command'
@@ -41,7 +48,9 @@ export type prefSection =
     | 'language.haskell.Command'
     | 'general.retainWebviewContext'
     | 'general.autoShowJudge'
-    | 'general.defaultLanguageTemplateFileLocation';
+    | 'general.defaultLanguageTemplateFileLocation'
+    | 'general.remoteServerAddress'
+    | 'general.showLiveUserCount';
 
 export type Language = {
     name: LangNames;
@@ -55,11 +64,14 @@ export type LangNames =
     | 'ruby'
     | 'c'
     | 'cpp'
+    | 'cc'
+    | 'cxx'
     | 'rust'
     | 'java'
     | 'js'
     | 'go'
-    | 'hs';
+    | 'hs'
+    | 'csharp';
 
 export type TestCase = {
     input: string;
@@ -150,6 +162,10 @@ export type OpenUrl = {
     url: string;
 };
 
+export type GetExtLogs = {
+    command: 'get-ext-logs';
+};
+
 export type WebviewToVSEvent =
     | RunAllCommand
     | GetInitialProblem
@@ -161,7 +177,8 @@ export type WebviewToVSEvent =
     | SubmitCf
     | OnlineJudgeEnv
     | SubmitKattis
-    | OpenUrl;
+    | OpenUrl
+    | GetExtLogs;
 
 export type RunningCommand = {
     command: 'running';
@@ -207,6 +224,11 @@ export type RemoteMessageCommand = {
     message: string;
 };
 
+export type ExtLogsCommand = {
+    command: 'ext-logs';
+    logs: string;
+};
+
 export type VSToWebViewMessage =
     | ResultCommand
     | RunningCommand
@@ -217,7 +239,8 @@ export type VSToWebViewMessage =
     | SubmitFinishedCommand
     | NotRunningCommand
     | RemoteMessageCommand
-    | NewProblemCommand;
+    | NewProblemCommand
+    | ExtLogsCommand;
 
 export type CphEmptyResponse = {
     empty: true;
@@ -239,4 +262,6 @@ declare global {
     var reporter: TelemetryReporter;
     var context: vscode.ExtensionContext;
     var remoteMessage: string | undefined;
+    var storedLogs: string;
+    var logger: any;
 }

@@ -6,11 +6,13 @@ import * as vscode from 'vscode';
 import path from 'path';
 import { writeFileSync, readFileSync, existsSync } from 'fs';
 import * as fs from 'fs';
-import { isCodeforcesUrl, randomId } from './utils';
+import { isCodeforcesUrl, isLuoguUrl, isAtCoderUrl, randomId } from './utils';
 import {
     getDefaultLangPref,
     getLanguageId,
     useShortCodeForcesName,
+    useShortLuoguName,
+    useShortAtCoderName,
     getMenuChoices,
     getDefaultLanguageTemplateFileLocation,
 } from './preferences';
@@ -29,32 +31,23 @@ export const submitKattisProblem = (problem: Problem) => {
     globalThis.reporter.sendTelemetryEvent(telmetry.SUBMIT_TO_KATTIS);
     const srcPath = problem.srcPath;
     const homedir = os.homedir();
-    let submitPath = `${homedir}/.kattis/submit.py`;
-    if (process.platform == 'win32') {
-        if (
-            !existsSync(`${homedir}\\.kattis\\.kattisrc`) ||
-            !existsSync(`${homedir}\\.kattis\\submit.py`)
-        ) {
-            vscode.window.showErrorMessage(
-                `Please ensure .kattisrc and submit.py are present in ${homedir}\\.kattis\\submit.py`,
-            );
-            return;
-        } else {
-            submitPath = `${homedir}\\.kattis\\submit.py`;
-        }
-    } else {
-        if (
-            !existsSync(`${homedir}/.kattis/.kattisrc`) ||
-            !existsSync(`${homedir}/.kattis/submit.py`)
-        ) {
-            vscode.window.showErrorMessage(
-                `Please ensure .kattisrc and submit.py are present in ${homedir}/.kattis/submit.py`,
-            );
-            return;
-        } else {
-            submitPath = `${homedir}/.kattis/submit.py`;
-        }
+    const directoryChar = process.platform == 'win32' ? '\\' : '/';
+    const submitPath = `${homedir}${directoryChar}.kattis${directoryChar}submit.py`;
+
+    if (
+        !existsSync(
+            `${homedir}${directoryChar}.kattis${directoryChar}.kattisrc`,
+        ) ||
+        !existsSync(
+            `${homedir}${directoryChar}.kattis${directoryChar}submit.py`,
+        )
+    ) {
+        vscode.window.showErrorMessage(
+            `Please ensure .kattisrc and submit.py are present in ${homedir}${directoryChar}.kattis${directoryChar}`,
+        );
+        return;
     }
+
     const pyshell = spawn('python', [submitPath, '-f', srcPath]);
 
     //tells the python script to open submission window in new tab
@@ -63,7 +56,7 @@ export const submitKattisProblem = (problem: Problem) => {
     pyshell.stdin.end();
 
     pyshell.stdout.on('data', function (data) {
-        console.log(data.toString());
+        globalThis.logger.log(data.toString());
         getJudgeViewProvider().extensionToJudgeViewMessage({
             command: 'new-problem',
             problem,
@@ -71,7 +64,7 @@ export const submitKattisProblem = (problem: Problem) => {
         ({ command: 'submit-finished' });
     });
     pyshell.stderr.on('data', function (data) {
-        console.log(data.tostring());
+        globalThis.logger.log(data.tostring());
         vscode.window.showErrorMessage(data);
     });
 };
@@ -90,7 +83,7 @@ export const storeSubmitProblem = (problem: Problem) => {
         languageId,
     };
     globalThis.reporter.sendTelemetryEvent(telmetry.SUBMIT_TO_CODEFORCES);
-    console.log('Stored savedResponse', savedResponse);
+    globalThis.logger.log('Stored savedResponse', savedResponse);
 };
 
 export const setupCompanionServer = () => {
@@ -100,7 +93,8 @@ export const setupCompanionServer = () => {
             let rawProblem = '';
 
             req.on('data', (chunk) => {
-                COMPANION_LOGGING && console.log('Companion server got data');
+                COMPANION_LOGGING &&
+                    globalThis.logger.log('Companion server got data');
                 rawProblem += chunk;
             });
             req.on('close', function () {
@@ -111,7 +105,9 @@ export const setupCompanionServer = () => {
                     const problem: Problem = JSON.parse(rawProblem);
                     handleNewProblem(problem);
                     COMPANION_LOGGING &&
-                        console.log('Companion server closed connection.');
+                        globalThis.logger.log(
+                            'Companion server closed connection.',
+                        );
                 } catch (e) {
                     vscode.window.showErrorMessage(
                         `Error parsing problem from companion "${e}. Raw problem: '${rawProblem}'"`,
@@ -121,7 +117,7 @@ export const setupCompanionServer = () => {
             res.write(JSON.stringify(savedResponse));
             if (headers['cph-submit'] == 'true') {
                 COMPANION_LOGGING &&
-                    console.log(
+                    globalThis.logger.log(
                         'Request was from the cph-submit extension; sending savedResponse and clearing it',
                         savedResponse,
                     );
@@ -141,18 +137,31 @@ export const setupCompanionServer = () => {
                 `Are multiple VSCode windows open? CPH will work on the first opened window. CPH server encountered an error: "${err.message}" , companion may not work.`,
             );
         });
-        console.log('Companion server listening on port', config.port);
+        globalThis.logger.log(
+            'Companion server listening on port',
+            config.port,
+        );
         return server;
     } catch (e) {
-        console.error('Companion server error :', e);
+        globalThis.logger.error('Companion server error :', e);
     }
 };
 
 export const getProblemFileName = (problem: Problem, ext: string) => {
     if (isCodeforcesUrl(new URL(problem.url)) && useShortCodeForcesName()) {
         return `${getProblemName(problem.url)}.${ext}`;
+    } else if (isLuoguUrl(new URL(problem.url)) && useShortLuoguName()) {
+        // Url is like https://www.luogu.com.cn/problem/P1000
+        const pattern = /problem\/(\w+)/;
+        const match = problem.url.match(pattern);
+        return `${match?.[1] ?? ''}.${ext}`;
+    } else if (isAtCoderUrl(new URL(problem.url)) && useShortAtCoderName()) {
+        // Url is like https://atcoder.jp/contests/abc311/tasks/abc311_a
+        const pattern = /tasks\/(\w+)_(\w+)/;
+        const match = problem.url.match(pattern);
+        return `${match?.[1] ?? ''}${match?.[2] ?? ''}.${ext}`;
     } else {
-        console.log(
+        globalThis.logger.log(
             isCodeforcesUrl(new URL(problem.url)),
             useShortCodeForcesName(),
         );
@@ -259,7 +268,7 @@ const handleNewProblem = async (problem: Problem) => {
     try {
         url = new URL(problem.url);
     } catch (err) {
-        console.error(err);
+        globalThis.logger.error(err);
         return null;
     }
     if (url.hostname == 'open.kattis.com') {
@@ -271,9 +280,10 @@ const handleNewProblem = async (problem: Problem) => {
 
     // Add fields absent in competitive companion.
     problem.srcPath = srcPath;
-    problem.tests = problem.tests.map((testcase) => ({
+    problem.tests = problem.tests.map((testcase, index) => ({
         ...testcase,
-        id: randomId(),
+        // Pass in index to avoid generating duplicate id
+        id: randomId(index),
     }));
     if (!existsSync(srcPath)) {
         writeFileSync(srcPath, '');
@@ -293,26 +303,12 @@ const handleNewProblem = async (problem: Problem) => {
             } else {
                 const templateContents =
                     readFileSync(templateLocation).toString();
-                // writeFileSync(srcPath, templateContents);
-                const activeEditor = vscode.window.activeTextEditor;
-                if (activeEditor != null) {
-                    const snippet = new vscode.SnippetString(templateContents);
-                    await activeEditor.edit((editBuilder) => {
-                        editBuilder.delete(
-                            new vscode.Range(
-                                0,
-                                0,
-                                activeEditor.document.lineCount,
-                                activeEditor.document.getText().length,
-                            ),
-                        );
-                    });
-                    activeEditor.insertSnippet(snippet);
-                }
+                writeFileSync(srcPath, templateContents);
             }
         }
     }
 
+    await vscode.window.showTextDocument(doc, vscode.ViewColumn.One);
     getJudgeViewProvider().extensionToJudgeViewMessage({
         command: 'new-problem',
         problem,
