@@ -260,7 +260,7 @@ export type WebViewpersistenceState = {
 
 declare global {
     var reporter: TelemetryReporter;
-    var context: vscode.ExtensionContext;
+    var extensionContext: vscode.ExtensionContext;
     var remoteMessage: string | undefined;
     var storedLogs: string;
     var logger: any;

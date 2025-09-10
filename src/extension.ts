@@ -98,7 +98,7 @@ const registerCommands = (context: vscode.ExtensionContext) => {
 // This method is called when the extension is activated
 export function activate(context: vscode.ExtensionContext) {
     globalThis.logger.log('cph: activate() execution started');
-    globalThis.context = context;
+    (globalThis as any).context = context;
 
     downloadRemoteMessage();
 

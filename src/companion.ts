@@ -200,13 +200,14 @@ export const getWorkspaceSubFolders = async (
 };
 
 export const askForFolderFromList = async (
-    folders: string[],
+    folders: string[], problem: Problem
 ): Promise<string | undefined> => {
     const choices = [];
-
     for (const folder of folders) {
         choices.push({ label: folder, path: folder });
     }
+
+    if (isCodeforcesUrl(new URL(problem.url)) || isLuoguUrl(new URL(problem.url)) || isAtCoderUrl(new URL(problem.url))) return choices[0].path;
 
     const selectedFolder = await vscode.window.showQuickPick(choices, {
         placeHolder: 'Select a folder',
@@ -216,10 +217,10 @@ export const askForFolderFromList = async (
 };
 
 export const askForFolder = async (
-    folder: string,
+    folder: string, problem: Problem
 ): Promise<string | undefined> => {
     const folders = await getWorkspaceSubFolders(folder);
-    return await askForFolderFromList(folders);
+    return await askForFolderFromList(folders, problem);
 };
 
 /** Handle the `problem` sent by Competitive Companion, such as showing the webview, opening an editor, managing layout etc. */
@@ -237,7 +238,7 @@ const handleNewProblem = async (problem: Problem) => {
         vscode.window.showInformationMessage('Please open a folder first.');
         return;
     }
-    const folderPath = await askForFolder(folder);
+    const folderPath = await askForFolder(folder, problem);
     if (folderPath == undefined) {
         vscode.window.showInformationMessage('No folder selected.');
         return;
