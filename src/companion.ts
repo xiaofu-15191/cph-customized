@@ -200,14 +200,20 @@ export const getWorkspaceSubFolders = async (
 };
 
 export const askForFolderFromList = async (
-    folders: string[], problem: Problem
+    folders: string[],
+    problem: Problem,
 ): Promise<string | undefined> => {
     const choices = [];
     for (const folder of folders) {
         choices.push({ label: folder, path: folder });
     }
 
-    if (isCodeforcesUrl(new URL(problem.url)) || isLuoguUrl(new URL(problem.url)) || isAtCoderUrl(new URL(problem.url))) return choices[0].path;
+    if (
+        isCodeforcesUrl(new URL(problem.url)) ||
+        isLuoguUrl(new URL(problem.url)) ||
+        isAtCoderUrl(new URL(problem.url))
+    )
+        return choices[0].path;
 
     const selectedFolder = await vscode.window.showQuickPick(choices, {
         placeHolder: 'Select a folder',
@@ -217,7 +223,8 @@ export const askForFolderFromList = async (
 };
 
 export const askForFolder = async (
-    folder: string, problem: Problem
+    folder: string,
+    problem: Problem,
 ): Promise<string | undefined> => {
     const folders = await getWorkspaceSubFolders(folder);
     return await askForFolderFromList(folders, problem);
@@ -226,6 +233,12 @@ export const askForFolder = async (
 /** Handle the `problem` sent by Competitive Companion, such as showing the webview, opening an editor, managing layout etc. */
 const handleNewProblem = async (problem: Problem) => {
     globalThis.reporter.sendTelemetryEvent(telmetry.GET_PROBLEM_FROM_COMPANION);
+    // Send a message to the VS Code Developer Tools console for debugging
+    // (appears in the Extension Host / Developer Tools console)
+    console.log(
+        'CPH companion: received problem from Competitive Companion',
+        problem,
+    );
     // If webview may be focused, close it, to prevent layout bug.
     if (vscode.window.activeTextEditor == undefined) {
         getJudgeViewProvider().extensionToJudgeViewMessage({
@@ -242,8 +255,6 @@ const handleNewProblem = async (problem: Problem) => {
     if (folderPath == undefined) {
         vscode.window.showInformationMessage('No folder selected.');
         return;
-    } else {
-        vscode.window.showInformationMessage(`Selected folder: ${folderPath}`);
     }
     const defaultLanguage = getDefaultLangPref();
     let extn: string;
