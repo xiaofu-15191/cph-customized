@@ -13,7 +13,8 @@
         "Other"
     ],
     "activationEvents": [
-        "onLanguage:cpp,python,java,c"
+        "onLanguage:cpp,python,java,c",
+        "onStartupFinished"
     ],
     "sponsor": {
         "url": "https://rb.gy/5iiorz"
