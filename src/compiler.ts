@@ -291,7 +291,7 @@ const createDotnetProject = async (
 /**
  * Compile a source file, storing the output binary in a location based on user
  * preferences. If `skipCompile` is true for a language, skips the compilation
- * and resolves true. If there is no preference, stores in the current
+ * and resolves true. If there is no preference, stores in the Source
  * directory. Resolves true if it succeeds, false otherwise.
  *
  * Saves the file before compilation starts.
@@ -322,9 +322,39 @@ export const checkNotModified = (srcPath: string): boolean => {
     );
     const hashPath = getHashSaveLocation(srcPath);
     try {
-        const past: string = fs.readFileSync(hashPath).toString();
-        const current: string = getFileHashVal(srcPath);
-        if (past != current) {
+        const pastSourceRaw: string = fs.readFileSync(hashPath).toString();
+        const currentSource: string = getFileHashVal(srcPath);
+
+        // Support two formats for the hash file:
+        // - legacy: plain hash string
+        // - new: JSON { hash: string, onlineJudgeEnv: boolean }
+        let pastHash: string | null = null;
+        let pastOnlineJudgeEnv: boolean | null = null;
+        try {
+            const parsed = JSON.parse(pastSourceRaw);
+            if (parsed && typeof parsed === 'object' && 'hash' in parsed) {
+                pastHash = String(parsed.hash);
+                pastOnlineJudgeEnv = !!parsed.onlineJudgeEnv;
+            } else {
+                // not JSON with hash field, treat as legacy plain string
+                pastHash = pastSourceRaw;
+            }
+        } catch (e) {
+            // legacy format: plain hash string
+            pastHash = pastSourceRaw;
+        }
+
+        if (pastHash != currentSource) {
+            return false;
+        }
+
+        // If we have a stored onlineJudgeEnv value, require it to match the
+        // current global `onlineJudgeEnv`. If not present (legacy), treat as
+        // compatible and continue.
+        if (
+            pastOnlineJudgeEnv !== null &&
+            pastOnlineJudgeEnv !== onlineJudgeEnv
+        ) {
             return false;
         }
         fs.accessSync(getBinSaveLocation(srcPath));
@@ -339,7 +369,11 @@ export const updateFileHash = (srcPath: string): boolean => {
     try {
         const hashPath = getHashSaveLocation(srcPath);
         const currentHashval = getFileHashVal(srcPath);
-        fs.writeFileSync(hashPath, currentHashval);
+        const payload = {
+            hash: currentHashval,
+            onlineJudgeEnv: !!onlineJudgeEnv,
+        };
+        fs.writeFileSync(hashPath, JSON.stringify(payload));
         return true;
     } catch (err) {
         console.error('Failed Updating <' + srcPath + ">'s Hashval.");
@@ -413,7 +447,7 @@ export const compileFile = async (srcPath: string): Promise<boolean> => {
             ocWrite(
                 'Errors while compiling:\n' +
                     err.message +
-                    `\n\nHint: Is the compiler ${language.compiler} installed? Check the compiler command in cph settings for the current language.`,
+                    `\n\nHint: Is the compiler ${language.compiler} installed? Check the compiler command in cph settings for the Source language.`,
             );
             getJudgeViewProvider().extensionToJudgeViewMessage({
                 command: 'compiling-stop',
